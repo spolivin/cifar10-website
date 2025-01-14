@@ -1,33 +1,41 @@
+"""Module containing building blocks of models and functions to build neural networks."""
+
+# Author: Sergey Polivin <s.polivin@gmail.com>
+# License: MIT License
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
 class Encoder(nn.Module):
-    """Builds a number of convolutional blocks."""
+    """Builds a series of convolutional blocks."""
 
     def __init__(self, encoder_channels: tuple[int]) -> None:
         """Initializes a class instance.
 
         Args:
-            encoder_channels (tuple[int]): Convolution channels.
+            encoder_channels (tuple[int]): Tuple of convolution channels.
         """
         super().__init__()
-        self.conv_blocks = nn.Sequential(
-            *[
-                self.conv_block(in_channel, out_channel)
-                for in_channel, out_channel in zip(
-                    encoder_channels, encoder_channels[1:]
-                )
-            ]
-        )
+        # Creating a series of encoder blocks in accordance with channels in `encoder_channels`
+        encoder_blocks = [
+            self._make_encoder_block(in_channel, out_channel)
+            for in_channel, out_channel in zip(
+                encoder_channels, encoder_channels[1:]
+            )
+        ]
+        # Sequentially connecting the generated convolution blocks
+        self.encoder_blocks = nn.Sequential(*encoder_blocks)
 
-    def conv_block(self, in_channels: int, out_channels: int) -> nn.Sequential:
-        """Creates a convolution block of the Encoder.
+    def _make_encoder_block(
+        self, in_channels: int, out_channels: int
+    ) -> nn.Sequential:
+        """Creates a convolution block with ReLU activation and MaxPooling.
 
         Args:
-            in_channels (int): Number of input channels.
-            out_channels (int): Number of output channels.
+            in_channels (int): Number of input channels for convolution.
+            out_channels (int): Number of output channels for convolution.
 
         Returns:
             nn.Sequential: Convolution block of sequentially connected layers.
@@ -52,37 +60,40 @@ class Encoder(nn.Module):
         Returns:
             torch.Tensor: Output tensor of Encoder.
         """
-        return self.conv_blocks(x)
+        return self.encoder_blocks(x)
 
 
 class Decoder(nn.Module):
-    """Builds a number of feedforward blocks."""
+    """Builds a series of feedforward blocks."""
 
     def __init__(self, decoder_features: tuple[int], num_labels: int) -> None:
         """Initializes a class instance.
 
         Args:
-            decoder_features (tuple[int]): Channels in the Decoder.
-            num_labels (int): Number of output labels.
+            decoder_features (tuple[int]): Tuple of features in the Decoder.
+            num_labels (int): Number of output labels in the last layer.
         """
         super().__init__()
-        self.dec_blocks = nn.Sequential(
-            *[
-                self.dec_block(in_feature, out_feature)
-                for in_feature, out_feature in zip(
-                    decoder_features, decoder_features[1:]
-                )
-            ]
-        )
-        self.dropout = nn.Dropout(p=0.5)
+        # Creating a series of decoder blocks in accordance with features in `decoder_features`
+        decoder_blocks = [
+            self._make_decoder_block(in_feature, out_feature)
+            for in_feature, out_feature in zip(
+                decoder_features, decoder_features[1:]
+            )
+        ]
+        # Sequentially connecting the generated feedforward blocks
+        self.decoder_blocks = nn.Sequential(*decoder_blocks)
+        # Creating the last layer of the Decoder
         self.last = nn.Linear(decoder_features[-1], num_labels)
 
-    def dec_block(self, in_features: int, out_features: int) -> nn.Sequential:
-        """Creates a decoder block of the Decoder.
+    def _make_decoder_block(
+        self, in_features: int, out_features: int
+    ) -> nn.Sequential:
+        """Creates a fully connected linear layer with Sigmoid activation.
 
         Args:
-            in_features (int): Number of input features.
-            out_features (int): Number of output features.
+            in_features (int): Number of input features of the Decoder.
+            out_features (int): Number of output features of the Decoder.
 
         Returns:
             nn.Sequential: Decoder block of sequentially connected layers.
@@ -101,14 +112,13 @@ class Decoder(nn.Module):
         Returns:
             torch.Tensor: Output tensor of Decoder.
         """
-        x = self.dec_blocks(x)
-        x = self.dropout(x)
+        x = self.decoder_blocks(x)
         x = self.last(x)
 
         return x
 
 
-class CNN(nn.Module):
+class EDNet(nn.Module):
     """Joins Encoder with Decoder to form a CNN."""
 
     def __init__(
@@ -121,11 +131,10 @@ class CNN(nn.Module):
         """Initializes a class instance.
 
         Args:
-            in_channels (int): Number of input channels.
-            encoder_channels (tuple[int]): Encoder channels.
-            decoder_features (tuple[int]): Decoder channels.
+            in_channels (int): Number of input channels for the image.
+            encoder_channels (tuple[int]): Tuple of channels for the Encoder.
+            decoder_features (tuple[int]): Tuple of channels for the Decoder.
             num_labels (int): Number of ouput labels.
-                Defaults to "xavier".
         """
         super().__init__()
         # Setting up Encoder block
@@ -157,14 +166,15 @@ class BasicBlock(nn.Module):
     def __init__(
         self, in_channels: int, out_channels: int, stride: int = 1
     ) -> None:
-        """_summary_
+        """Builds a block of ResNet layer with 2 inner blocks (CONV + BN + SKIP CONNECTION).
 
         Args:
-            in_channels (int): _description_
-            out_channels (int): _description_
-            stride (int, optional): _description_. Defaults to 1.
+            in_channels (int): Number of input channels.
+            out_channels (int): Number of output channels.
+            stride (int, optional): Value of stride. Defaults to 1.
         """
         super().__init__()
+        # BLOCK 1 (CONV + BN) #################################################
         self.conv1 = nn.Conv2d(
             in_channels,
             out_channels,
@@ -174,6 +184,8 @@ class BasicBlock(nn.Module):
             bias=False,
         )
         self.bn1 = nn.BatchNorm2d(out_channels)
+
+        # BLOCK 2 (CONV + BN) #################################################
         self.conv2 = nn.Conv2d(
             out_channels,
             out_channels,
@@ -184,7 +196,9 @@ class BasicBlock(nn.Module):
         )
         self.bn2 = nn.BatchNorm2d(out_channels)
 
+        # SKIP CONNECTION #################################################
         self.shortcut = nn.Sequential()
+        # Specifying condition for applying residual connection
         if stride != 1 or in_channels != out_channels:
             self.shortcut = nn.Sequential(
                 nn.Conv2d(
@@ -198,17 +212,21 @@ class BasicBlock(nn.Module):
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """_summary_
+        """Makes a forward pass.
 
         Args:
-            x (torch.Tensor): _description_
+            x (torch.Tensor): Input tensor.
 
         Returns:
-            torch.Tensor: _description_
+            torch.Tensor: Output tensor.
         """
+        # Output for BLOCK 1
         out = F.relu(self.bn1(self.conv1(x)))
+        # Output for BLOCK 2
         out = self.bn2(self.conv2(out))
+        # Adding up SKIP CONNECTION if condition met
         out += self.shortcut(x)
+        # Output of RESNET BLOCK
         return F.relu(out)
 
 
@@ -216,45 +234,61 @@ class ResNet(nn.Module):
     def __init__(
         self, block: BasicBlock, num_blocks: list[int], num_classes: int = 10
     ) -> None:
-        """_summary_
+        """Builds a ResNet model with 3 layers.
 
         Args:
-            block (BasicBlock): _description_
-            num_blocks (List[int]): _description_
-            num_classes (int, optional): _description_. Defaults to 10.
+            block (BasicBlock): Block of ResNet layer.
+            num_blocks (list[int]): Number of blocks inside Block of ResNet layer.
+            num_classes (int, optional): Number of output classes. Defaults to 10.
         """
         super().__init__()
+        # Specifying a number of initial input channels
         self.in_channels = 16
 
+        # LAYER 0 (CONV + BN) #################################################################################
         self.conv1 = nn.Conv2d(
             3, 16, kernel_size=3, stride=1, padding=1, bias=False
         )
         self.bn1 = nn.BatchNorm2d(16)
-        self.layer1 = self._make_layer(block, 16, num_blocks[0], stride=1)
-        self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
-        self.layer3 = self._make_layer(block, 64, num_blocks[2], stride=2)
+
+        # LAYERS 1, 2, 3 (`num_blocks` blocks with 2 CONV/BN BLOCKS for 1 layer) ##############################
+        self.layer1 = self._make_resnet_layer(
+            block=block, out_channels=16, num_blocks=num_blocks[0], stride=1
+        )
+        self.layer2 = self._make_resnet_layer(
+            block=block, out_channels=32, num_blocks=num_blocks[1], stride=2
+        )
+        self.layer3 = self._make_resnet_layer(
+            block=block, out_channels=64, num_blocks=num_blocks[2], stride=2
+        )
+
+        # GLOBAL POOLING LAYER ################################################################################
         self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+
+        # FC LAYER ############################################################################################
         self.fc = nn.Linear(64, num_classes)
 
-    def _make_layer(
+    def _make_resnet_layer(
         self,
         block: BasicBlock,
         out_channels: int,
         num_blocks: int,
         stride: int,
     ) -> nn.Sequential:
-        """_summary_
+        """Creates a ResNet layer by stacking up BasicBlock-s.
 
         Args:
-            block (BasicBlock): _description_
-            out_channels (int): _description_
-            num_blocks (int): _description_
-            stride (int): _description_
+            block (BasicBlock): Block inside ResNet layer.
+            out_channels (int): Number of output channels.
+            num_blocks (int): Number of blocks inside ResNet layer.
+            stride (int): Value of stride.
 
         Returns:
-            nn.Sequential: _description_
+            nn.Sequential: Layer of ResNet with blocks added inside.
         """
+        # Specifying strides to be used for each BasicBlock
         strides = [stride] + [1] * (num_blocks - 1)
+        # Stacking up ResNet blocks
         layers = []
         for stride in strides:
             layers.append(block(self.in_channels, out_channels, stride))
@@ -262,13 +296,13 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """_summary_
+        """Makes a forward pass.
 
         Args:
-            x (torch.Tensor): _description_
+            x (torch.Tensor): Input tensor.
 
         Returns:
-            torch.Tensor: _description_
+            torch.Tensor: Output tensor.
         """
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.layer1(out)
@@ -279,13 +313,13 @@ class ResNet(nn.Module):
         return self.fc(out)
 
 
-def ednet4() -> CNN:
-    """_summary_
+def ednet4() -> EDNet:
+    """Instantiates an Encoder-Decoder model with preset channels.
 
     Returns:
-        CNN: _description_
+        EDNet: Instance of EDNet class.
     """
-    return CNN(
+    return EDNet(
         in_channels=3,
         encoder_channels=(32, 64),
         decoder_features=(576, 250),
@@ -294,9 +328,11 @@ def ednet4() -> CNN:
 
 
 def resnet20() -> ResNet:
-    """_summary_
+    """Instantiates a ResNet model.
 
     Returns:
-        ResNet: _description_
+        ResNet: Instance of ResNet model with 20 layers.
     """
-    return ResNet(BasicBlock, [3, 3, 3])
+    # (2 Convolutional Layers in 1 block * 3 blocks in 1 Layer) * 3 Layers => 18 Layers =>
+    # => + 1 Convolution Layer + 1 FC-Layer ==> ResNet20 (20 Layers)
+    return ResNet(block=BasicBlock, num_blocks=[3, 3, 3], num_classes=10)
