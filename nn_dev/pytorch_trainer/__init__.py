@@ -1,4 +1,4 @@
-"""Python package for training PyTorch models.
+"""Python package for simplifying API for training PyTorch models.
 
 -----------------------------------------------------
 

@@ -10,7 +10,7 @@ class CheckpointHandler:
     """Class for saving and loading trainer checkpoints."""
 
     def save_checkpoint(self, trainer, path: str) -> None:
-        """Saves the checkpoint: run_id, epoch, model state and optimizer state.
+        """Saves the checkpoint: last trained epoch, model state and optimizer state.
 
         Args:
             trainer: Trainer instance.
@@ -26,7 +26,7 @@ class CheckpointHandler:
         )
 
     def load_checkpoint(self, trainer, path: str) -> None:
-        """Loads the checkpoint: run_id, epoch, model state and optimizer state.
+        """Loads the checkpoint: last trained epoch, model state and optimizer state.
 
         Args:
             trainer: Trainer instance.

@@ -1,4 +1,4 @@
-"""Module for class for handling tracking and computation of metrics."""
+"""Module for handling tracking and computation of metrics."""
 
 # Author: Sergey Polivin <s.polivin@gmail.com>
 # License: MIT License
@@ -11,11 +11,11 @@ class MetricsTracker:
         """Initializes a class instance.
 
         Attributes:
-            metrics (dict[str, float]): Metrics in a dict format.
+            metrics (dict[str, list[float]]): Batch-level metrics in a dict format.
             total_correct_train (int): Number of correct predictions in train set.
             total_samples_train (int): Total number of examples in train set.
             total_correct_valid (int): Number of correct predictions in valid set.
-            total_samples_valid (int): Total number of examples in train set.
+            total_samples_valid (int): Total number of examples in valid set.
         """
         self.metrics = {}
         self.total_correct_train = 0
@@ -32,7 +32,7 @@ class MetricsTracker:
         self.total_samples_valid = 0
 
     def update(self, name: str, value: float) -> None:
-        """Updates a specific metric
+        """Updates a specific metric.
 
         Args:
             name (str): Metric name.
@@ -89,10 +89,12 @@ class MetricsTracker:
         Returns:
             dict[str, float]: Epoch-level metrics.
         """
+        # Aggregating loss across batches
         metrics = {
             name: sum(values) / len(values)
             for name, values in self.metrics.items()
         }
+        # Computing accuracy scores
         metrics["accuracy/train"] = self.compute_accuracy(split="train")
         metrics["accuracy/valid"] = self.compute_accuracy(split="valid")
 
