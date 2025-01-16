@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="assets/rocket-takeoff.svg" sizes="16x16 32x32">
+    <title>CIFAR-10 Recognition</title>
+  </head>
+  <body>
+    <nav class="navbar bg-body-tertiary" data-bs-theme="dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+          <img alt="Logo" src="assets/rocket-takeoff.svg" width="30" height="24" class="d-inline-block align-text-top">
+          Image Classifier
+        </a>
+        </a>
+      </div>
+    </nav>
+    <section class="py-5 text-center container">
+      <div class="row py-lg-5">
+        <div class="col-lg-6 col-md-8 mx-auto">
+          <h1 class="fw-light">Ordinary Objects Classification (CIFAR-10)</h1>
+          <p class="lead text-body-secondary">Upload the image to obtain the prediction below</p>
+          <div class="mb-3">
+            <input class="form-control" type="file" id="formFile">
+            <div id="response">
+              <div class="alert alert-info" id="predicted-class" role="alert" style="display: none;">
+              </div>
+            </div>
+            <img id="displayImage"  style="display: none;">
+            <canvas id="canvas" style="display: none;"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

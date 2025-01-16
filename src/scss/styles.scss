@@ -1,0 +1,36 @@
+// Importing all of Bootstrap's CSS
+@import "bootstrap/scss/bootstrap";
+
+// Settings for image itself
+$img-max-width: 100%;
+$img-height: auto;
+$img-border: 1px solid black;
+$img-background-position: center;
+$img-background-size: cover;
+$img-border-radius: 10px;
+
+// Settings for the image display
+$imgdisplay-display: flex;
+$imgdisplay-justify-content: center;
+$imgdisplay-align-items: center;
+$imgdisplay-gap: 10px;
+$imgdisplay-flex-direction: column;
+$imgdisplay-margin-top: 30px;
+
+#displayImage {
+    max-width: $img-max-width;
+    height: $img-height;
+    border: $img-border;
+    background-position: $img-background-position;
+    background-size: $img-background-size;
+    border-radius: $img-border-radius;
+}
+
+.mb-3 {
+    display: $imgdisplay-display;
+    justify-content: $imgdisplay-justify-content;
+    align-items: $imgdisplay-align-items;
+    gap: $imgdisplay-gap;
+    flex-direction: $imgdisplay-flex-direction;
+    margin-top: $imgdisplay-margin-top;
+  }
