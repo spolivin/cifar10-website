@@ -1,0 +1,56 @@
+{
+     "model_architecture": {
+          "input_size": [
+               3,
+               32,
+               32
+          ],
+          "num_layers": 20,
+          "num_classes": 10,
+          "architecture": "ResNet"
+     },
+     "training_parameters": {
+          "learning_rate": 0.0625,
+          "batch_size": 128,
+          "num_epochs": 15,
+          "optimizer": "SGD",
+          "loss_function": "CrossEntropyLoss"
+     },
+     "dataset": {
+          "name": "CIFAR-10",
+          "normalization": {
+               "mean": [
+                    0.4914,
+                    0.4822,
+                    0.4465
+               ],
+               "std": [
+                    0.247,
+                    0.243,
+                    0.261
+               ]
+          },
+          "data_augmentation": [
+               "RandomCrop(32, padding=4)",
+               "RandomHorizontalFlip()"
+          ],
+          "num_examples": {
+               "train": 50000,
+               "valid": 9000,
+               "test": 1000
+          }
+     },
+     "performance": {
+          "accuracy": {
+               "train": 0.8683,
+               "valid": 0.8393,
+               "test": 0.848
+          }
+     },
+     "metadata": {
+          "author": "Sergey Polivin",
+          "date_trained": "2025-01-15",
+          "version": "v1.0",
+          "purpose": "Image classification on CIFAR-10"
+     }
+}
